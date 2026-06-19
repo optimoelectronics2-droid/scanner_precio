@@ -1,0 +1,25 @@
+{
+  "name": "Trifusion Scanner Pro",
+  "short_name": "TS Scanner",
+  "description": "Busca productos, precios y escanea codigos de tu inventario en tiempo real.",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#070b14",
+  "theme_color": "#070b14",
+  "categories": ["business", "utilities"],
+  "icons": [
+    {
+      "src": "icon-192.svg",
+      "sizes": "192x192",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "icon-512.svg",
+      "sizes": "512x512",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

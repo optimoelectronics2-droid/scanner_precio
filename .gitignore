@@ -1,0 +1,6 @@
+node_modules/
+.git/
+Acceso.txt
+*.log
+.DS_Store
+Thumbs.db
