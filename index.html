@@ -17,6 +17,7 @@
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/quagga/0.12.1/quagga.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
 
@@ -153,9 +154,12 @@
 
         .modal-full{position:fixed;inset:0;z-index:100;background:#000;display:none;flex-direction:column}
         .modal-full.open{display:flex}
-        .camera-top-bar{padding:16px;display:flex;align-items:center;justify-content:space-between;position:absolute;top:0;left:0;right:0;z-index:10;background:linear-gradient(to bottom,rgba(0,0,0,.8),transparent)}
+        .camera-top-bar{padding:12px 16px;display:flex;flex-direction:column;gap:10px;position:absolute;top:0;left:0;right:0;z-index:10;background:linear-gradient(to bottom,rgba(0,0,0,.8),transparent)}
+        .camera-top-row{display:flex;align-items:center;justify-content:space-between}
         .camera-title{font-weight:600;font-size:16px}
-        .btn-close{width:36px;height:36px;border-radius:50%;background:rgba(255,255,255,.12);border:none;color:white;cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(8px)}
+        .camera-tabs{display:flex;gap:6px;justify-content:center}
+        .cam-tab{background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.2);color:rgba(255,255,255,.6);border-radius:50px;padding:6px 16px;font-size:12px;font-weight:500;cursor:pointer;font-family:'Inter',sans-serif;backdrop-filter:blur(8px);transition:all .2s;display:flex;align-items:center;gap:5px}
+        .cam-tab.active{background:var(--accent);border-color:var(--accent);color:white}
         #video-container{position:absolute;inset:0}
         #video-container video{width:100%;height:100%;object-fit:cover}
         #video-container canvas{display:none}
@@ -166,16 +170,36 @@
         .scan-corner.tr{top:-1px;right:-1px;border-top-width:3px;border-right-width:3px;border-radius:0 3px 0 0}
         .scan-corner.bl{bottom:-1px;left:-1px;border-bottom-width:3px;border-left-width:3px;border-radius:0 0 0 3px}
         .scan-corner.br{bottom:-1px;right:-1px;border-bottom-width:3px;border-right-width:3px;border-radius:0 0 3px 0}
-        .scan-line{position:absolute;left:0;right:0;height:2px;background:linear-gradient(90deg,transparent,var(--accent),transparent);box-shadow:0 0 8px var(--accent);animation:sweep 2s ease-in-out infinite}
+        .scan-line{position:absolute;left:0;right:0;height:2px;background:linear-gradient(90deg,transparent,var(--accent),transparent);box-shadow:0 0 8px var(--accent);animation:sweep 2s ease-in-out infinite;opacity:0}
         @keyframes sweep{0%{top:0;opacity:0}10%{opacity:1}90%{opacity:1}100%{top:100%;opacity:0}}
+        .scan-frame.show-line .scan-line{opacity:1}
         .scan-found .scan-corner{border-color:var(--green)}
         .scan-found .scan-line{background:linear-gradient(90deg,transparent,var(--green),transparent);box-shadow:0 0 8px var(--green)}
-        .camera-bottom{position:absolute;bottom:0;left:0;right:0;z-index:10;background:linear-gradient(to top,rgba(0,0,0,.9),transparent);padding:20px 16px 36px}
+        .camera-bottom{position:absolute;bottom:0;left:0;right:0;z-index:10;background:linear-gradient(to top,rgba(0,0,0,.9),transparent);padding:20px 16px 36px;transition:opacity .3s}
+        .camera-bottom.hidden{opacity:0;pointer-events:none}
         .scan-hint{text-align:center;font-size:12px;color:rgba(255,255,255,.5);margin-bottom:14px}
         .manual-row{display:flex;gap:8px}
         .manual-input{flex:1;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.2);border-radius:12px;padding:12px 14px;color:white;font-size:14px;font-family:'Inter',sans-serif;outline:none}
         .manual-input::placeholder{color:rgba(255,255,255,.4)}
         .btn-manual{background:var(--accent);border:none;border-radius:12px;padding:0 16px;color:white;font-size:14px;font-weight:600;cursor:pointer;font-family:'Inter',sans-serif}
+        .btn-capture{width:70px;height:70px;border-radius:50%;background:rgba(255,255,255,.2);border:3px solid white;position:absolute;bottom:36px;left:50%;transform:translateX(-50%);z-index:15;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .2s}
+        .btn-capture:active{transform:translateX(-50%) scale(0.9)}
+        .btn-capture-inner{width:56px;height:56px;border-radius:50%;background:white;transition:all .2s}
+        .btn-capture:active .btn-capture-inner{width:48px;height:48px}
+        .photo-preview{position:absolute;inset:0;z-index:6;background:#000;display:none;flex-direction:column}
+        .photo-preview.open{display:flex}
+        .photo-preview img{width:100%;height:100%;object-fit:contain}
+        .photo-actions{position:absolute;bottom:28px;left:0;right:0;z-index:12;display:flex;justify-content:center;gap:16px;padding:0 20px}
+        .photo-btn{background:rgba(255,255,255,.15);backdrop-filter:blur(10px);border:1px solid rgba(255,255,255,.25);color:white;border-radius:50px;padding:12px 22px;font-size:13px;font-weight:600;cursor:pointer;font-family:'Inter',sans-serif;display:flex;align-items:center;gap:8px;transition:all .2s}
+        .photo-btn:active{transform:scale(0.95)}
+        .photo-btn.primary{background:var(--accent);border-color:var(--accent)}
+        .photo-btn.success{background:var(--green);border-color:var(--green)}
+        .analyzing-overlay{position:absolute;inset:0;z-index:8;background:rgba(0,0,0,.85);display:none;flex-direction:column;align-items:center;justify-content:center;gap:12px}
+        .analyzing-overlay.open{display:flex}
+        .ai-ring{width:90px;height:90px;border-radius:50%;background:rgba(99,102,241,0.15);border:3px solid var(--accent);display:flex;align-items:center;justify-content:center;position:relative}
+        .ai-ring::before{content:'';position:absolute;inset:-10px;border-radius:50%;border:2px solid rgba(99,102,241,0.2);animation:voiceRipple 1.2s ease-out infinite}
+        .ai-ring i{font-size:28px;color:var(--accent)}
+        .analyzing-text{font-size:13px;color:var(--t2);text-align:center;padding:0 24px}
 
         .modal-sheet-bg{position:fixed;inset:0;z-index:80;background:rgba(0,0,0,.6);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);display:none;align-items:flex-end}
         .modal-sheet-bg.open{display:flex}
@@ -304,11 +328,20 @@
 
 <div class="modal-full" id="cameraModal">
     <div class="camera-top-bar">
-        <div class="camera-title"><i class="fa-solid fa-barcode"></i> Escanear Codigo</div>
-        <button class="btn-close" onclick="closeCamera()"><i class="fa-solid fa-xmark"></i></button>
+        <div class="camera-top-row">
+            <div class="camera-title" id="cameraTitleText"><i class="fa-solid fa-camera"></i> Camara</div>
+            <button class="btn-close" onclick="closeCamera()"><i class="fa-solid fa-xmark"></i></button>
+        </div>
+        <div class="camera-tabs" id="cameraTabs">
+            <button class="cam-tab active" data-mode="barcode" onclick="switchCameraMode('barcode')"><i class="fa-solid fa-qrcode"></i> Codigo</button>
+            <button class="cam-tab" data-mode="visual" onclick="switchCameraMode('visual')"><i class="fa-solid fa-camera"></i> Visual</button>
+        </div>
     </div>
-    <div id="video-container"></div>
-    <div class="scan-overlay">
+    <div id="video-container">
+        <video id="cameraVideo" playsinline autoplay></video>
+        <canvas id="cameraCanvas" style="display:none"></canvas>
+    </div>
+    <div class="scan-overlay" id="scanOverlay">
         <div class="scan-frame" id="scanFrame">
             <div class="scan-corner tl"></div>
             <div class="scan-corner tr"></div>
@@ -317,8 +350,23 @@
             <div class="scan-line"></div>
         </div>
     </div>
-    <div class="camera-bottom">
-        <p class="scan-hint">Apunta la camara al codigo de barras</p>
+    <div class="photo-preview" id="photoPreview">
+        <img id="photoCaptured" src="" alt="captured">
+        <div class="photo-actions">
+            <button class="photo-btn" onclick="retakePhoto()"><i class="fa-solid fa-rotate-left"></i> Repetir</button>
+            <button class="photo-btn primary" onclick="analyzePhoto()"><i class="fa-solid fa-magnifying-glass"></i> Buscar con IA</button>
+            <button class="photo-btn success" onclick="voiceSearchPhoto()"><i class="fa-solid fa-microphone"></i> Describir</button>
+        </div>
+    </div>
+    <div class="analyzing-overlay" id="analyzingOverlay">
+        <div class="ai-ring"><i class="fa-solid fa-brain"></i></div>
+        <div class="analyzing-text" id="analyzingText">Analizando imagen...</div>
+    </div>
+    <button class="btn-capture" id="btnCapture" onclick="capturePhoto()" style="display:none">
+        <div class="btn-capture-inner"></div>
+    </button>
+    <div class="camera-bottom" id="cameraBottom">
+        <p class="scan-hint" id="scanHint">Apunta la camara al codigo de barras</p>
         <div class="manual-row">
             <input type="text" class="manual-input" id="manualBarcode"
                 placeholder="O escribe el codigo..."
@@ -657,12 +705,31 @@ function closeDetail(e) {
 
 function openCamera() {
     document.getElementById('cameraModal').classList.add('open');
+    currentCameraMode = 'barcode';
+    document.querySelectorAll('.cam-tab').forEach(t => t.classList.remove('active'));
+    var barcodeTab = document.querySelector('.cam-tab[data-mode="barcode"]');
+    if (barcodeTab) barcodeTab.classList.add('active');
+    var scanOverlay = document.getElementById('scanOverlay');
+    if (scanOverlay) scanOverlay.style.display = 'flex';
+    var scanHint = document.getElementById('scanHint');
+    if (scanHint) scanHint.textContent = 'Apunta la camara al codigo de barras';
+    var cameraBottom = document.getElementById('cameraBottom');
+    if (cameraBottom) cameraBottom.style.display = 'block';
+    var btnCapture = document.getElementById('btnCapture');
+    if (btnCapture) btnCapture.style.display = 'none';
+    var photoPreview = document.getElementById('photoPreview');
+    if (photoPreview) photoPreview.classList.remove('open');
+    var analyzingOverlay = document.getElementById('analyzingOverlay');
+    if (analyzingOverlay) analyzingOverlay.classList.remove('open');
+    stopCameraStream();
+    document.getElementById('video-container').innerHTML = '<video id="cameraVideo" playsinline autoplay></video><canvas id="cameraCanvas" style="display:none"></canvas>';
     setTimeout(initQuagga, 300);
 }
 
 function closeCamera() {
     document.getElementById('cameraModal').classList.remove('open');
     if (isScanning) { try { Quagga.stop(); } catch(e) {} isScanning = false; }
+    stopCameraStream();
 }
 
 function initQuagga() {
@@ -698,7 +765,7 @@ function searchByCode(code) {
         (p.barcode && p.barcode.toString() === code) ||
         (p.sku && p.sku.toLowerCase() === code.toLowerCase()) ||
         (p.model && p.model.toLowerCase() === code.toLowerCase()) ||
-        p.serials.some(s => s.toString() === code) ||
+        (p.serials && p.serials.some(s => s && s.toString() === code)) ||
         p.id === code
     );
     if (product) {
@@ -712,27 +779,418 @@ function searchByCode(code) {
     document.getElementById('manualBarcode').value = '';
 }
 
-let toastTimer;
+var toastTimer;
 function showToast(msg, type) {
-    const t = document.getElementById('toast');
+    var t = document.getElementById('toast');
+    if (!t) return;
     t.textContent = msg;
     t.className = 'toast show ' + (type || '');
     clearTimeout(toastTimer);
-    toastTimer = setTimeout(() => t.classList.remove('show'), 2800);
+    toastTimer = setTimeout(function() { t.classList.remove('show'); }, 2800);
 }
 
-let touchStartY = 0;
-document.addEventListener('DOMContentLoaded', () => {
-    const detailSheet = document.getElementById('detailSheet');
-    detailSheet.addEventListener('touchstart', e => { touchStartY = e.touches[0].clientY; }, { passive: true });
-    detailSheet.addEventListener('touchmove', e => {
+var cameraStream = null;
+let currentCameraMode = 'barcode';
+let photoDataUrl = null;
+
+function switchCameraMode(mode) {
+    currentCameraMode = mode;
+    document.querySelectorAll('.cam-tab').forEach(t => t.classList.remove('active'));
+    document.querySelector('.cam-tab[data-mode="' + mode + '"]').classList.add('active');
+    const so = document.getElementById('scanOverlay');
+    const sh = document.getElementById('scanHint');
+    const bc = document.getElementById('btnCapture');
+    const cb = document.getElementById('cameraBottom');
+    const pp = document.getElementById('photoPreview');
+    const ao = document.getElementById('analyzingOverlay');
+    if (ao) ao.classList.remove('open');
+    if (pp) pp.classList.remove('open');
+    if (bc) bc.style.display = 'none';
+    if (mode === 'barcode') {
+        if (so) so.style.display = 'flex';
+        if (sh) sh.textContent = 'Apunta la camara al codigo de barras';
+        if (cb) cb.style.display = 'block';
+        stopCameraStream();
+        document.getElementById('video-container').innerHTML = '<video id="cameraVideo" playsinline autoplay></video><canvas id="cameraCanvas" style="display:none"></canvas>';
+        setTimeout(initQuagga, 300);
+    } else {
+        if (so) so.style.display = 'none';
+        if (cb) cb.style.display = 'none';
+        if (isScanning) { try { Quagga.stop(); } catch(e) {} isScanning = false; }
+        stopCameraStream();
+        document.getElementById('video-container').innerHTML = '<video id="cameraVideo" playsinline autoplay></video><canvas id="cameraCanvas" style="display:none"></canvas>';
+        startCameraStream();
+        if (bc) { bc.style.display = 'flex'; bc.style.position = 'absolute'; bc.style.bottom = '36px'; bc.style.left = '50%'; bc.style.transform = 'translateX(-50%)'; }
+    }
+}
+
+function stopCameraStream() {
+    if (cameraStream) { cameraStream.getTracks().forEach(t => t.stop()); cameraStream = null; }
+}
+
+function startCameraStream() {
+    const video = document.getElementById('cameraVideo');
+    if (!video) return;
+    navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment', width: { ideal: 1280 }, height: { ideal: 720 } }, audio: false })
+        .then(function(stream) { cameraStream = stream; video.srcObject = stream; video.play(); })
+        .catch(function() { showToast('No se pudo acceder a la camara', 'error'); });
+}
+
+function capturePhoto() {
+    var video = document.getElementById('cameraVideo');
+    var canvas = document.getElementById('cameraCanvas');
+    if (!video || !canvas) return;
+    canvas.width = video.videoWidth || 1280;
+    canvas.height = video.videoHeight || 720;
+    canvas.getContext('2d').drawImage(video, 0, 0, canvas.width, canvas.height);
+    photoDataUrl = canvas.toDataURL('image/jpeg', 0.9);
+    document.getElementById('photoCaptured').src = photoDataUrl;
+    document.getElementById('photoPreview').classList.add('open');
+    document.getElementById('btnCapture').style.display = 'none';
+    if (cameraStream) cameraStream.getTracks().forEach(function(t) { t.enabled = false; });
+}
+
+function retakePhoto() {
+    document.getElementById('photoPreview').classList.remove('open');
+    document.getElementById('analyzingOverlay').classList.remove('open');
+    document.getElementById('btnCapture').style.display = 'flex';
+    if (cameraStream) cameraStream.getTracks().forEach(function(t) { t.enabled = true; });
+}
+
+function setAnalyzingText(msg, detail) {
+    var el = document.getElementById('analyzingText');
+    if (el) el.innerHTML = msg + (detail ? '<br><span style="font-size:11px;color:var(--t3)">' + detail + '</span>' : '');
+}
+
+function levenshtein(a, b) {
+    var m = a.length, n = b.length;
+    if (m === 0) return n; if (n === 0) return m;
+    var dp = [];
+    for (var i = 0; i <= m; i++) dp[i] = [i];
+    for (var j = 0; j <= n; j++) dp[0][j] = j;
+    for (var i = 1; i <= m; i++) {
+        for (var j = 1; j <= n; j++) {
+            dp[i][j] = a[i-1] === b[j-1] ? dp[i-1][j-1] : 1 + Math.min(dp[i-1][j], dp[i][j-1], dp[i-1][j-1]);
+        }
+    }
+    return dp[m][n];
+}
+
+function extractTokens(text) {
+    var tokens = [];
+    var lines = text.split('\n');
+    for (var i = 0; i < lines.length; i++) {
+        var words = lines[i].trim().split(/[\s,;:\-\/\\|()]+/);
+        for (var w = 0; w < words.length; w++) {
+            var clean = words[w].replace(/[^a-zA-Z0-9\u00C0-\u024F.]/g, '').toLowerCase();
+            if (clean.length > 1 && clean.length < 35) tokens.push(clean);
+        }
+    }
+    return tokens.filter(function(v, i, a) { return a.indexOf(v) === i; });
+}
+
+function extractNumbers(text) {
+    var nums = [];
+    var matches = text.match(/\d[\d.,\-]+\d/g);
+    if (matches) {
+        for (var i = 0; i < matches.length; i++) {
+            var clean = matches[i].replace(/[^0-9]/g, '');
+            if (clean.length >= 5) nums.push(clean);
+        }
+    }
+    return nums.filter(function(v, i, a) { return a.indexOf(v) === i; });
+}
+
+function productMatchScore(p, tokens, allText, brightness) {
+    var score = 0;
+    var reasons = [];
+    var pName = (p.name || '').toLowerCase();
+    var pDesc = (p.description || '').toLowerCase();
+    var pBrand = (p.brand || '').toLowerCase();
+    var pCat = (p.category || '').toLowerCase();
+    var pBarcode = (p.barcode || '').toString().replace(/[^0-9]/g, '');
+    var pSku = (p.sku || '').toLowerCase();
+    var pModel = (p.model || '').toLowerCase();
+    var pSearchStr = (p._searchStr || (pName + ' ' + pSku + ' ' + pBarcode + ' ' + pModel + ' ' + pBrand + ' ' + pCat)).toLowerCase();
+
+    var exactNumbers = extractNumbers(allText);
+
+    // 1. Direct barcode match (highest priority)
+    if (pBarcode.length >= 5) {
+        for (var ni = 0; ni < exactNumbers.length; ni++) {
+            if (exactNumbers[ni] === pBarcode) { score += 200; reasons.push('barcode exacto'); return { score: score, reasons: reasons }; }
+            if (exactNumbers[ni].indexOf(pBarcode) !== -1 || pBarcode.indexOf(exactNumbers[ni]) !== -1) { score += 100; reasons.push('barcode parcial'); }
+        }
+    }
+
+    // 2. SKU/model exact match
+    var allLines = allText.split('\n');
+    var allWords = allText.toLowerCase().split(/[\s,;:\-\/\\|()]+/);
+    for (var li = 0; li < allLines.length; li++) {
+        var line = allLines[li].trim().toLowerCase();
+        if (pSku && line.indexOf(pSku) !== -1) { score += 80; reasons.push('sku'); break; }
+        if (pModel && line.indexOf(pModel) !== -1) { score += 80; reasons.push('modelo'); break; }
+    }
+
+    // 3. Token matching
+    var tokenHits = 0;
+    for (var ti = 0; ti < tokens.length; ti++) {
+        var token = tokens[ti];
+        if (token.length < 2) continue;
+
+        if (pName.indexOf(token) !== -1) { score += 20; tokenHits++; reasons.push('t:' + token); continue; }
+        if (pBrand.indexOf(token) !== -1) { score += 18; tokenHits++; reasons.push('marca:' + token); continue; }
+        if (pSku.indexOf(token) !== -1) { score += 25; tokenHits++; reasons.push('sku:' + token); continue; }
+        if (pModel.indexOf(token) !== -1) { score += 25; tokenHits++; reasons.push('modelo:' + token); continue; }
+        if (pDesc.indexOf(token) !== -1) { score += 10; tokenHits++; reasons.push('desc:' + token); continue; }
+        if (pCat.indexOf(token) !== -1) { score += 8; reasons.push('cat:' + token); }
+
+        // Fuzzy match on name (for OCR typos)
+        if (token.length >= 4) {
+            var pNameWords = pName.split(/\s+/);
+            for (var pw = 0; pw < pNameWords.length; pw++) {
+                if (pNameWords[pw].length >= 4) {
+                    var dist = levenshtein(token, pNameWords[pw]);
+                    var maxLen = Math.max(token.length, pNameWords[pw].length);
+                    if (dist <= Math.floor(maxLen / 3)) { score += 12; tokenHits++; reasons.push('fuzzy:' + pNameWords[pw]); break; }
+                }
+            }
+        }
+    }
+
+    // 4. Brand match from brand field
+    var brandNames = ['samsung','apple','xiaomi','huawei','motorola','lg','sony','hp','dell','lenovo','canon','epson','logitech','asus','acer','msi','honor','realme','oneplus','oppo','vivo','nokia','google','microsoft','panasonic','toshiba','kingston','sandisk','seagate','corsair','gigabyte','intel','amd','nvidia','ryzen','core','iphone','galaxy','redmi','note','pixel','thinkpad','ideapad','pavilion','inspiron','latitude','surface','ipad','blackview','ulefone','doogee','cubot','tecno','infinix','itel','alcatel','zte','blu','huawei','honor','oneplus','oppo','realme','vivo','xiaomi','redmi','poco','nothing','asus','acer','dell','hp','lenovo','msi','toshiba','panasonic','sony','lg','samsung','canon','epson','brother','kyocera','lexmark','xerox','seagate','western','kingston','sandisk','corsair','gigabyte','intel','amd','nvidia','logitech','razer','corsair','hyperx','steelseries'];
+    for (var bi = 0; bi < brandNames.length; bi++) {
+        var bn = brandNames[bi];
+        if (allWords.indexOf(bn) !== -1 && pBrand.indexOf(bn) !== -1) { score += 25; reasons.push('marca:' + bn); break; }
+        if (allWords.indexOf(bn) !== -1 && pName.indexOf(bn) !== -1) { score += 20; reasons.push('brand_nombre:' + bn); break; }
+    }
+
+    // 5. Category context
+    var catNames = ['celular','telefono','laptop','computadora','tablet','monitor','pantalla','impresora','audifono','cargador','cable','mouse','teclado','camara','parlante','bocina','router','modem','ups','disco','memoria','ssd','hdmi','usb','bateria','case','funda','protector','cargador','cargadores','hub','adaptador','switch','tarjeta','lente','tripode','lampara','foco','cinta','papel','toner','tinta','microfono','webcam','ventilador','enfriador','base','soporte','brazo','mesa','silla','escritorio'];
+    for (var ci = 0; ci < catNames.length; ci++) {
+        if (allWords.indexOf(catNames[ci]) !== -1 && pCat.indexOf(catNames[ci]) !== -1) {
+            score += 10; reasons.push('categoria:' + catNames[ci]); break;
+        }
+    }
+
+    // 6. Price proximity
+    var priceVal = parseFloat(p.price) || 0;
+    if (priceVal > 0) {
+        var priceNums = allText.match(/\d+[.,]?\d*/g);
+        if (priceNums) {
+            for (var pni = 0; pni < priceNums.length; pni++) {
+                var n = parseFloat(priceNums[pni].replace(',', '.'));
+                if (n > 0 && Math.abs(n - priceVal) / Math.max(n, priceVal) < 0.2) {
+                    score += 12; reasons.push('precio'); break;
+                }
+            }
+        }
+    }
+
+    // 7. Visual context bonus
+    if (brightness !== undefined) {
+        if (brightness < 50 && (pCat.indexOf('electronica') !== -1 || pCat.indexOf('celular') !== -1)) score += 5;
+        if (brightness > 180 && pCat.indexOf('accesorio') !== -1) score += 3;
+    }
+
+    // 8. Token density bonus (many tokens hit = stronger match)
+    if (tokenHits >= 3) score += 10;
+    if (tokenHits >= 5) score += 15;
+
+    return { score: score, reasons: reasons };
+}
+
+function analyzePhoto() {
+    if (!photoDataUrl) { showToast('Toma una foto primero', 'error'); return; }
+    if (!allProducts || allProducts.length === 0) { showToast('No hay productos en el inventario', 'error'); return; }
+    document.getElementById('analyzingOverlay').classList.add('open');
+    setAnalyzingText('Preparando imagen...', 'Iniciando analisis visual');
+
+    var imgDataUrl = photoDataUrl;
+    var ocrTimeout = null;
+    var ocrDone = false;
+    var ocrText = '';
+    var brightnessVal = 128;
+
+    function runMatch(ocrResultText) {
+        if (ocrTimeout) { clearTimeout(ocrTimeout); ocrTimeout = null; }
+        ocrDone = true;
+        setAnalyzingText('Analizando texto...', 'Buscando coincidencias en ' + allProducts.length + ' productos');
+
+        var allText = ocrResultText || '';
+        var tokens = allText ? extractTokens(allText) : [];
+
+        var bestProducts = [];
+        for (var pi = 0; pi < allProducts.length; pi++) {
+            var p = allProducts[pi];
+            var result = productMatchScore(p, tokens, allText, brightnessVal);
+            if (result.score > 0) {
+                bestProducts.push({ product: p, score: result.score, reasons: result.reasons });
+            }
+        }
+
+        bestProducts.sort(function(a, b) { return b.score - a.score; });
+
+        if (bestProducts.length > 0) {
+            var top = bestProducts[0];
+            var second = bestProducts[1];
+            document.getElementById('analyzingOverlay').classList.remove('open');
+
+            if (top.score >= 40) {
+                showToast(top.product.name, 'success');
+                setTimeout(function() { showDetail(top.product.id); }, 400);
+                return;
+            }
+
+            if (top.score >= 15 && second && top.score > second.score * 1.5) {
+                showToast('Probable: ' + top.product.name, '');
+                setTimeout(function() { showDetail(top.product.id); }, 400);
+                return;
+            }
+
+            document.getElementById('photoPreview').classList.remove('open');
+            document.getElementById('btnCapture').style.display = 'flex';
+            if (cameraStream) cameraStream.getTracks().forEach(function(t) { t.enabled = true; });
+
+            if (top.score >= 10) {
+                showToast('Tal vez: ' + top.product.name, '');
+                document.getElementById('searchInput').value = top.product.name;
+                handleSearch(top.product.name);
+                return;
+            }
+
+            showToast('No se encontro coincidencia exacta', '');
+            setTimeout(function() { document.getElementById('searchInput').focus(); startVoiceSearch(); }, 500);
+        } else {
+            document.getElementById('photoPreview').classList.remove('open');
+            document.getElementById('btnCapture').style.display = 'flex';
+            if (cameraStream) cameraStream.getTracks().forEach(function(t) { t.enabled = true; });
+            document.getElementById('analyzingOverlay').classList.remove('open');
+            showToast('Describe el producto con tu voz', '');
+            setTimeout(function() { document.getElementById('searchInput').focus(); startVoiceSearch(); }, 500);
+        }
+    }
+
+    // Compute image brightness
+    var tempCanvas = document.createElement('canvas');
+    tempCanvas.width = 32; tempCanvas.height = 32;
+    var tempCtx = tempCanvas.getContext('2d');
+    var tempImg = new Image();
+    tempImg.onload = function() {
+        tempCtx.drawImage(tempImg, 0, 0, 32, 32);
+        var pix = tempCtx.getImageData(0, 0, 32, 32).data;
+        var r = 0, g = 0, b = 0, cnt = 0;
+        for (var k = 0; k < pix.length; k += 16) { r += pix[k]; g += pix[k+1]; b += pix[k+2]; cnt++; }
+        brightnessVal = (r / cnt + g / cnt + b / cnt) / 3;
+
+        // Try OCR
+        if (typeof Tesseract !== 'undefined') {
+            setAnalyzingText('Leyendo texto con IA...', 'Iniciando OCR (reconocimiento de texto)');
+            ocrTimeout = setTimeout(function() {
+                if (!ocrDone) {
+                    setAnalyzingText('Tiempo de OCR agotado', 'Buscando con texto disponible');
+                    runMatch(ocrText || '');
+                }
+            }, 8000);
+
+            try {
+                Tesseract.recognize(imgDataUrl, 'spa+eng', {
+                    logger: function(m) {
+                        if (m.status === 'recognizing text' && !ocrDone) {
+                            var pct = Math.round((m.progress || 0) * 100);
+                            setAnalyzingText('Leyendo texto...', pct + '% completado');
+                        }
+                    }
+                }).then(function(res) {
+                    if (!ocrDone) {
+                        if (res && res.data && res.data.text) ocrText = res.data.text;
+                        runMatch(ocrText);
+                    }
+                }).catch(function() {
+                    if (!ocrDone) runMatch(ocrText || '');
+                });
+            } catch(e) {
+                if (!ocrDone) runMatch(ocrText || '');
+            }
+        } else {
+            setAnalyzingText('OCR no disponible', 'Buscando por caracteristicas visuales');
+            setTimeout(function() { runMatch(''); }, 300);
+        }
+    };
+    tempImg.src = imgDataUrl;
+}
+
+function voiceSearchPhoto() {
+    document.getElementById('photoPreview').classList.remove('open');
+    document.getElementById('analyzingOverlay').classList.remove('open');
+    document.getElementById('btnCapture').style.display = 'flex';
+    if (cameraStream) cameraStream.getTracks().forEach(function(t) { t.enabled = true; });
+    startVoiceSearch();
+}
+
+function startVoiceSearch() {
+    if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
+        showToast('Busqueda por voz no disponible', 'error');
+        return;
+    }
+    if (!window._voiceRecog) {
+        var SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+        window._voiceRecog = new SR();
+        window._voiceRecog.lang = 'es-DO';
+        window._voiceRecog.continuous = false;
+        window._voiceRecog.interimResults = false;
+        window._voiceRecog.maxAlternatives = 5;
+        window._voiceRecog.onresult = function(e) {
+            window._voiceListening = false;
+            document.getElementById('voiceRing').classList.remove('listening');
+            document.getElementById('voiceOverlay').classList.remove('open');
+            var t = e.results[0][0].transcript;
+            if (e.results[0][0].confidence > 0.2) {
+                document.getElementById('searchInput').value = t;
+                handleSearch(t);
+            } else showToast('No se entendio bien', 'error');
+        };
+        window._voiceRecog.onerror = function() {
+            window._voiceListening = false;
+            document.getElementById('voiceRing').classList.remove('listening');
+            document.getElementById('voiceOverlay').classList.remove('open');
+        };
+        window._voiceRecog.onend = function() {
+            window._voiceListening = false;
+            document.getElementById('voiceRing').classList.remove('listening');
+            document.getElementById('voiceOverlay').classList.remove('open');
+        };
+    }
+    window._voiceListening = true;
+    document.getElementById('voiceOverlay').classList.add('open');
+    document.getElementById('voiceRing').classList.add('listening');
+    try { window._voiceRecog.start(); } catch(e) {}
+}
+
+function toggleFlash() {
+    if (!cameraStream) return;
+    var track = cameraStream.getVideoTracks()[0];
+    if (!track) return;
+    var cap = track.getCapabilities();
+    if (!cap.torch) { showToast('Flash no disponible', 'error'); return; }
+    track.applyConstraints({ advanced: [{ torch: !track.getSettings().torch }] }).catch(function(){});
+}
+
+var touchStartY = 0;
+function setupSheetDrag() {
+    var el = document.getElementById('detailSheet');
+    if (!el) return;
+    el.addEventListener('touchstart', function(e) { touchStartY = e.touches[0].clientY; }, { passive: true });
+    el.addEventListener('touchmove', function(e) {
         if (e.touches[0].clientY - touchStartY > 80) closeDetail({ target: document.getElementById('detailBg') });
     }, { passive: true });
-});
-
-if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.register('./sw.js').catch(() => {});
 }
+
+document.addEventListener('DOMContentLoaded', function() {
+    setupSheetDrag();
+    if ('serviceWorker' in navigator) navigator.serviceWorker.register('./sw.js').catch(function(){});
+});
 
 let recognition = null;
 let isListening = false;
